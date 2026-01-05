@@ -1,8 +1,12 @@
-name: noname
 version: "3.9"
 
 services:
   app:
-    build: .
+    image: paozero-noname:1.0.0
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "8089:8089"
+      - "8080:8080"
+    restart: unless-stopped
