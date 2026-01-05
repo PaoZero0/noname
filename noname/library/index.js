@@ -5650,7 +5650,7 @@ export class Library {
 				},
 				connect_choice_zhu: {
 					name: "主公候选武将数",
-					init: 3,
+					init: 4,
 					input: true,
 					restart: true,
 					onblur(e) {
@@ -5667,7 +5667,7 @@ export class Library {
 				},
 				connect_limit_zhu: {
 					name: "常备主候选武将数",
-					init: "group",
+					init: "4",
 					restart: true,
 					item: {
 						off: "不限制",
@@ -5680,7 +5680,7 @@ export class Library {
 				},
 				connect_choice_zhong: {
 					name: "忠臣候选武将数",
-					init: 4,
+					init: 6,
 					input: true,
 					restart: true,
 					onblur(e) {
@@ -5703,7 +5703,7 @@ export class Library {
 				},
 				connect_choice_fan: {
 					name: "反贼候选武将数",
-					init: 3,
+					init: 6,
 					input: true,
 					restart: true,
 					onblur(e) {
@@ -7375,7 +7375,7 @@ export class Library {
 				},
 				read_clipboard: {
 					name: "读取邀请链接",
-					init: true,
+					init: false,
 					frequent: true,
 					intro: "读取剪贴板以解析邀请链接自动加入联机房间",
 				},
