@@ -213,6 +213,14 @@ const characters = {
 		hp: 4,
 		skills: ["rewangzun", "retongji"],
 	},
+	gongsunli: {
+		sex: "female",
+		group: "qun",
+		hp: 3,
+		skills: ["xiangsi"],
+		names: "公孙离",
+		img: "image/character/gongsunli.jpg",
+	},
 };
 
 export default characters;

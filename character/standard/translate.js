@@ -162,6 +162,9 @@ const translates = {
 	stdxiaoguo_info: "其他角色的结束阶段开始时，你可以弃置一张基本牌，令该角色选择一项：1.弃置一张装备牌；2.受到你对其造成的1点伤害。",
 	stdqingjiao: "轻狡",
 	stdqingjiao_info: "主公技，锁定技，结束阶段，若你本回合对其他群势力角色造成过伤害，你摸一张牌。",
+	gongsunli: "公孙离",
+	xiangsi: "相思",
+	xiangsi_info: "锁定技，男性角色的回合开始阶段，将所有手牌交给你，并扣除1点血量。",
 };
 
 export default translates;

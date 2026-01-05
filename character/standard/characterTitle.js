@@ -33,4 +33,5 @@ export default {
 	ganfuren: "昭烈皇后",
 	old_re_lidian: "学而不厌",
 	std_yuejin: "奋强突固",
+	gongsunli: "红叶最多情",
 };
