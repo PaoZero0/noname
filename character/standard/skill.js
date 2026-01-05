@@ -2340,6 +2340,34 @@ const skills = {
 			event.targets[0].draw();
 		},
 	},
+	xiangsi: {
+		audio: 2,
+		trigger: { player: "phaseZhunbeiBegin" },
+		forced: true,
+		filter(event, player) {
+			return game.hasPlayer(current => current !== player && current.hasSex("male"));
+		},
+		async content(event, trigger, player) {
+			const targets = game.filterPlayer(current => current !== player && current.hasSex("male"));
+			for (const target of targets) {
+				if (target.countCards("h") > 0) {
+					const cards = target.getCards("h");
+					await target.give(cards, player);
+				}
+				await target.loseHp();
+			}
+		},
+		ai: {
+			threaten: 3,
+			effect: {
+				target(card, player, target) {
+					if (target.hasSex("male") && target.countCards("h") > 0) {
+						return [1, -2];
+					}
+				},
+			},
+		},
+	},
 };
 
 export default skills;
