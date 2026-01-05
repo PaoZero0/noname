@@ -94,3 +94,20 @@ docker logs -f noname
 
 ### 仅本机访问
 本机可用 `127.0.0.1` 测试；局域网其他设备需使用服务器内网 IP。
+
+---
+
+## 三、开发与部署（后续流程）
+
+### 1. 重新编译前先停止容器
+```bash
+docker-compose down
+docker-compose up -d --build
+```
+
+### 2. 打包镜像并上传到服务器
+```bash
+docker images
+docker save -o 压缩包名.tar <你的镜像名>:<tag>
+scp 压缩包名.tar <服务器用户名>@<服务器IP>:/root/
+```
