@@ -9,7 +9,7 @@
 - 联机 WS：8080
 
 ---
-
+## 所有操作都在项目主目录完成 /path/to/noname
 ## 一、本地部署全流程
 
 ### 1. 环境准备
@@ -18,6 +18,7 @@
 
 确认版本：
 ```bash
+nvm use 22
 node -v
 npm -v
 pnpm -v
@@ -25,7 +26,6 @@ pnpm -v
 
 ### 2. 构建前端
 ```bash
-cd /home/qzy/sanguosha/noname
 pnpm install
 pnpm build:full
 ```
@@ -39,8 +39,8 @@ pnpm serve
 ### 4. 运行联机 WS 服务（8080）
 `scripts/server.js` 是 CommonJS，仓库 `type: module`，建议复制为 `.cjs` 再运行：
 ```bash
-cp /home/qzy/sanguosha/noname/scripts/server.js /home/qzy/sanguosha/noname/scripts/server.cjs
-node /home/qzy/sanguosha/noname/scripts/server.cjs
+cp scripts/server.js scripts/server.cjs
+node scripts/server.cjs
 ```
 
 ### 5. 访问与联机方式
@@ -51,18 +51,28 @@ node /home/qzy/sanguosha/noname/scripts/server.cjs
 
 ## 二、Docker 一键部署全流程
 
-### 1. 构建镜像
+### 1. 使用 docker-compose（推荐，二选一）
+如果你安装的是旧版 compose，用 `docker-compose`；新版用 `docker compose`：
 ```bash
-cd /home/qzy/sanguosha/noname
-docker build -t noname-all .
+# 旧版
+docker-compose up -d --build
+
+# 新版
+docker compose up -d --build
 ```
 
-### 2. 启动容器
+### 2. 使用 docker run（可选，二选一）
+如果不想用 compose，可以用下面命令手动构建并启动：
+```bash
+docker build -t paozero-noname:1.0.0 .
+```
+
+然后启动容器：
 ```bash
 docker run -d --name noname \
   -p 8089:8089 \
   -p 8080:8080 \
-  noname-all
+  paozero-noname:1.0.0
 ```
 
 ### 3. 查看状态与日志
