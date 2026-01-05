@@ -409,7 +409,17 @@ export class Click {
 
 				for (var i = 0; i < button.info.length; i++) {
 					var node = ui.create.div(".menubutton.videonode.pointerdiv", uiintro.content);
-					ui.create.div(".menubutton.videoavatar", node).setBackground(button.info[i][1] || "caocao", "character");
+					var avatarNode = ui.create.div(".menubutton.videoavatar", node);
+					var avatar = button.info[i][1] || "caocao";
+					if (typeof avatar == "string" && (avatar.startsWith("http") || avatar.startsWith("data:") || avatar.startsWith("db:") || avatar.startsWith("ext:") || avatar.includes("/"))) {
+						if (avatar.startsWith("ext:")) {
+							avatar = avatar.replace(/^ext:/, "extension/");
+						}
+						avatarNode.setBackgroundImage(avatar);
+						avatarNode.style.backgroundSize = "cover";
+					} else {
+						avatarNode.setBackground(avatar, "character");
+					}
 					if (button.info[i][4] == game.wsid) {
 						ui.create.div(".name", '<span class="thundertext thunderauto">' + (button.info[i][0] || "无名玩家"), node);
 						node.isme = true;

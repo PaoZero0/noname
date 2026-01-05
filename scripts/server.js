@@ -2,6 +2,9 @@
 //@ts-nocheck
 
 (function () {
+	var fs = require("fs");
+	var path = require("path");
+	var crypto = require("crypto");
 	var WebSocketServer = require("ws").Server;
 	var wss = new WebSocketServer({ port: 8080 });
 	var bannedKeys = [];
@@ -11,8 +14,158 @@
 	var events = [];
 	var clients = {};
 	var bannedKeyWords = [];
+	var accountsPath = path.join(__dirname, "accounts.json");
+	var accounts = { users: {} };
+
+	var loadAccounts = function () {
+		try {
+			if (fs.existsSync(accountsPath)) {
+				var raw = fs.readFileSync(accountsPath, "utf-8");
+				var parsed = JSON.parse(raw);
+				if (parsed && typeof parsed == "object" && parsed.users && typeof parsed.users == "object") {
+					accounts = parsed;
+				}
+			}
+		} catch (e) {
+			console.log("accounts load failed:", e);
+		}
+	};
+
+	var saveAccounts = function () {
+		try {
+			fs.writeFileSync(accountsPath, JSON.stringify(accounts, null, 2));
+		} catch (e) {
+			console.log("accounts save failed:", e);
+		}
+	};
+
+	var normalizeUsername = function (name) {
+		return String(name || "").trim();
+	};
+
+	var normalizeAvatar = function (avatar) {
+		if (typeof avatar != "string") {return "";}
+		var trimmed = avatar.trim();
+		if (!trimmed) {return "";}
+		if (trimmed.length > 2048) {return "";}
+		return trimmed;
+	};
+
+	var isValidUsername = function (name) {
+		return /^[a-zA-Z0-9_]{3,16}$/.test(name);
+	};
+
+	var isValidPassword = function (password) {
+		return typeof password == "string" && password.length >= 6 && password.length <= 64;
+	};
+
+	var hashPassword = function (password, salt) {
+		return crypto.scryptSync(password, salt, 64).toString("hex");
+	};
+
+	var getGuestName = function () {
+		var num = Math.floor(Math.random() * 1000000)
+			.toString()
+			.padStart(6, "0");
+		return "游客" + num;
+	};
+
+	var requireAuth = function (ws) {
+		if (ws.authed) {return true;}
+		ws.sendl("authrequired");
+		return false;
+	};
+
+	loadAccounts();
 	var messages = {
+		register: function (username, password, nickname, avatar) {
+			username = normalizeUsername(username);
+			avatar = normalizeAvatar(avatar);
+			if (!isValidUsername(username) || !isValidPassword(password)) {
+				this.sendl("auth", { ok: false, reason: "invalid" });
+				return;
+			}
+			var key = username.toLowerCase();
+			if (accounts.users[key]) {
+				this.sendl("auth", { ok: false, reason: "exists" });
+				return;
+			}
+			var salt = crypto.randomBytes(16).toString("hex");
+			var hash = hashPassword(password, salt);
+			accounts.users[key] = {
+				username: username,
+				salt: salt,
+				hash: hash,
+				avatar: avatar || "",
+				createdAt: Date.now(),
+			};
+			saveAccounts();
+			this.authed = true;
+			this.account = { username: username, guest: false };
+			this.nickname = util.getNickname(username);
+			this.avatar = avatar || "caocao";
+			util.updateclients();
+			this.sendl("auth", {
+				ok: true,
+				username: username,
+				guest: false,
+				nickname: this.nickname,
+				avatar: this.avatar,
+			});
+		},
+		login: function (username, password, nickname, avatar) {
+			username = normalizeUsername(username);
+			avatar = normalizeAvatar(avatar);
+			if (!isValidUsername(username) || !isValidPassword(password)) {
+				this.sendl("auth", { ok: false, reason: "invalid" });
+				return;
+			}
+			var key = username.toLowerCase();
+			var account = accounts.users[key];
+			if (!account) {
+				this.sendl("auth", { ok: false, reason: "notfound" });
+				return;
+			}
+			var hash = hashPassword(password, account.salt);
+			if (hash !== account.hash) {
+				this.sendl("auth", { ok: false, reason: "password" });
+				return;
+			}
+			if (avatar) {
+				account.avatar = avatar;
+				saveAccounts();
+			}
+			this.authed = true;
+			this.account = { username: account.username, guest: false };
+			this.nickname = util.getNickname(account.username);
+			this.avatar = account.avatar || avatar || "caocao";
+			util.updateclients();
+			this.sendl("auth", {
+				ok: true,
+				username: account.username,
+				guest: false,
+				nickname: this.nickname,
+				avatar: this.avatar,
+			});
+		},
+		guest: function (nickname, avatar) {
+			var guestName = getGuestName();
+			avatar = normalizeAvatar(avatar);
+			this.authed = true;
+			this.account = { username: "guest_" + util.getid(), guest: true };
+			this.nickname = util.getNickname(guestName);
+			this.avatar = avatar || "caocao";
+			util.updateclients();
+			this.sendl("auth", {
+				ok: true,
+				username: this.account.username,
+				guest: true,
+				nickname: this.nickname,
+				avatar: this.avatar,
+			});
+		},
 		create: function (key, nickname, avatar, config, mode) {
+			if (!requireAuth(this)) {return;}
 			if (this.onlineKey != key) {return;}
 			this.nickname = util.getNickname(nickname);
 			this.avatar = avatar;
@@ -25,6 +178,7 @@
 			this.sendl("createroom", key);
 		},
 		enter: function (key, nickname, avatar) {
+			if (!requireAuth(this)) {return;}
 			this.nickname = util.getNickname(nickname);
 			this.avatar = avatar;
 			var room = false;
@@ -65,11 +219,20 @@
 			}
 		},
 		changeAvatar: function (nickname, avatar) {
+			if (!requireAuth(this)) {return;}
 			this.nickname = util.getNickname(nickname);
-			this.avatar = avatar;
+			this.avatar = normalizeAvatar(avatar) || this.avatar;
+			if (this.account && !this.account.guest && this.avatar) {
+				var key = this.account.username.toLowerCase();
+				if (accounts.users[key]) {
+					accounts.users[key].avatar = this.avatar;
+					saveAccounts();
+				}
+			}
 			util.updateclients();
 		},
 		server: function (cfg) {
+			if (!requireAuth(this)) {return;}
 			if (cfg) {
 				this.servermode = true;
 				var room = rooms[cfg[0]];
@@ -111,6 +274,7 @@
 			delete this.keyCheck;
 		},
 		events: function (cfg, id, type) {
+			if (!requireAuth(this)) {return;}
 			if (
 				bannedKeys.indexOf(id) != -1 ||
 				typeof id != "string" ||
@@ -172,6 +336,7 @@
 			}
 		},
 		config: function (config) {
+			if (!requireAuth(this)) {return;}
 			var room = this.room;
 			if (room && room.owner == this) {
 				if (room.servermode) {
@@ -189,6 +354,7 @@
 			util.updaterooms();
 		},
 		status: function (str) {
+			if (!requireAuth(this)) {return;}
 			if (typeof str == "string") {
 				this.status = str;
 			} else {
@@ -197,6 +363,7 @@
 			util.updateclients();
 		},
 		send: function (id, message) {
+			if (!requireAuth(this)) {return;}
 			if (clients[id] && clients[id].owner == this) {
 				try {
 					clients[id].send(message);
@@ -206,6 +373,7 @@
 			}
 		},
 		close: function (id) {
+			if (!requireAuth(this)) {return;}
 			if (clients[id] && clients[id].owner == this) {
 				clients[id].close();
 			}

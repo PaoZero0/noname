@@ -26,6 +26,36 @@ import skills from "./skill.js";
 
 const html = dedent;
 
+const requestConnectAuth = function (force) {
+	if (!force && _status.connectAuthed) {return;}
+	if (_status.connectAuthInProgress) {return;}
+	_status.connectAuthInProgress = true;
+	var choice = prompt("联机账号：输入 1 登录 2 注册 3 游客", "3");
+	if (!choice) {
+		_status.connectAuthInProgress = false;
+		return;
+	}
+	if (choice == "3") {
+		game.send("server", "guest", get.connectNickname(), lib.config.connect_avatar);
+		return;
+	}
+	var username = prompt("请输入用户名（3-16位字母/数字/下划线）");
+	if (!username) {
+		_status.connectAuthInProgress = false;
+		return;
+	}
+	var password = prompt("请输入密码（6-64位）");
+	if (!password) {
+		_status.connectAuthInProgress = false;
+		return;
+	}
+	if (choice == "2") {
+		game.send("server", "register", username, password, get.connectNickname(), lib.config.connect_avatar);
+	} else {
+		game.send("server", "login", username, password, get.connectNickname(), lib.config.connect_avatar);
+	}
+};
+
 export class Library {
 	configprefix = "noname_0.9_";
 	versionOL = 27;
@@ -12519,6 +12549,8 @@ export class Library {
 			},
 			roomlist: function (list, events, clients, wsid) {
 				game.send("server", "key", [game.onlineKey, lib.version]);
+				_status.connectAuthed = false;
+				_status.connectAuthInProgress = false;
 				game.online = true;
 				game.onlinehall = true;
 				lib.config.recentIP.remove(_status.ip);
@@ -12537,6 +12569,7 @@ export class Library {
 
 				clearTimeout(_status.createNodeTimeout);
 				game.send("server", "changeAvatar", get.connectNickname(), lib.config.connect_avatar);
+				requestConnectAuth();
 
 				var proceed = function () {
 					game.ip = get.trimip(_status.ip);
@@ -12775,6 +12808,43 @@ export class Library {
 					str += "，请注意文明发言";
 				}
 				alert(str);
+			},
+			authrequired: function () {
+				requestConnectAuth(true);
+			},
+			auth: function (result) {
+				_status.connectAuthInProgress = false;
+				if (result && result.ok) {
+					_status.connectAuthed = true;
+					if (result.nickname) {
+						game.saveConfig("connect_nickname", result.nickname);
+						game.saveConfig("connect_nickname", result.nickname, "connect");
+					}
+					if (result.avatar) {
+						game.saveConfig("connect_avatar", result.avatar);
+						game.saveConfig("connect_avatar", result.avatar, "connect");
+					}
+					if (result.guest) {
+						alert("已游客登录");
+					} else {
+						alert("登录成功");
+					}
+					return;
+				}
+				_status.connectAuthed = false;
+				var reason = result && result.reason;
+				var msg = "登录失败";
+				if (reason == "exists") {
+					msg = "注册失败：用户名已存在";
+				} else if (reason == "notfound") {
+					msg = "登录失败：用户不存在";
+				} else if (reason == "password") {
+					msg = "登录失败：密码错误";
+				} else if (reason == "invalid") {
+					msg = "登录失败：账号或密码不符合要求";
+				}
+				alert(msg);
+				requestConnectAuth(true);
 			},
 			init: function (id, config, ip, servermode, roomId) {
 				game.online = true;

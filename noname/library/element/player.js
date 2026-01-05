@@ -3557,14 +3557,24 @@ export class Player extends HTMLDivElement {
 		}
 	}
 	initOL(name, character) {
-		this.node.avatar.setBackground(character, "character");
+		var avatar = character;
+		if (typeof avatar == "string" && (avatar.startsWith("http") || avatar.startsWith("data:") || avatar.startsWith("db:") || avatar.startsWith("ext:") || avatar.includes("/"))) {
+			var src = avatar;
+			if (src.startsWith("ext:")) {
+				src = src.replace(/^ext:/, "extension/");
+			}
+			this.node.avatar.setBackgroundImage(src);
+			this.node.avatar.style.backgroundSize = "cover";
+		} else {
+			this.node.avatar.setBackground(avatar || "caocao", "character");
+		}
 		this.node.avatar.show();
 		this.node.name.innerHTML = get.verticalStr(name);
 		this.nickname = name;
-		this.avatar = character;
+		this.avatar = avatar;
 		this.node.nameol.innerHTML = "";
-		if (lib.character[character]) {
-			this.sex = lib.character[character][0];
+		if (lib.character[avatar]) {
+			this.sex = lib.character[avatar][0];
 		}
 	}
 	uninitOL() {

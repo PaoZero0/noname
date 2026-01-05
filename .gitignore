@@ -40,3 +40,6 @@ app.html
 Home
 noname.ico
 # localStorage.json
+
+# local account data
+scripts/accounts.json
